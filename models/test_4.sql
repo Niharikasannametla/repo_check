@@ -6,5 +6,4 @@ select
     5 as column_5,
     6 as column_6,
     7 as column_7
-from
-    abc
+
