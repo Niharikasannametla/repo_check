@@ -9,9 +9,3 @@ sources:
            tests:
              - unique
              - not_null
-     - name: NGDAP_CL_K
-       columns:
-         - name: CL_ID
-           tests:
-             - unique
-             - not_null
