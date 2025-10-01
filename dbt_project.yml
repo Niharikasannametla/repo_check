@@ -37,6 +37,7 @@ clean-targets:         # directories to be removed by `dbt clean`
 
 models:
   dbt_project_evaluator:
+    marts: 
       dag:
         # disable single DAG model
         fct_unused_sources:
