@@ -35,4 +35,11 @@ clean-targets:         # directories to be removed by `dbt clean`
 # continue to be built as views. These settings can be overridden in the individual model files
 # using the `{{ config(...) }}` macro.
 
+models:
+  dbt_project_evaluator:
+      dag:
+        # disable single DAG model
+        fct_unused_sources:
+          +enabled: false
+
 
