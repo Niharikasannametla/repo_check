@@ -1,3 +1,0 @@
-[sqlfluff:layout:type:comma]
-spacing_before = touch
-line_position = leading
