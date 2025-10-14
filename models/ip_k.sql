@@ -1,4 +1,9 @@
-{{ config(materialization="incremental", unique_key="IP_sup_key") }}
+{{
+    config(
+        materialized='incremental',
+        unique_key='ip_sup_key'
+    )
+}}
 
 {% set model_name = this.identifier %}
 {% set parts = model_name.split("_") %}
@@ -13,6 +18,6 @@
 {% do log("is_incremental: " ~ is_incremental(), info=True) %}
 {% if is_incremental() %} {{ key_table_load_v1(resolved_models, model_name) }}
 {% else %}
-{{ key_table_load_v1(resolved_models, model_name) }}
+{{ key_table_load_v1(resolved_models, model_name)  }}
 {% endif %}
 
