@@ -5,4 +5,3 @@ models:
       key_columns:
        department: ['ip_sup_key', 'ip_cust_sup_key']
        employee: ['ip_sup_key', 'ip_asd_ip_sup_key']
-       product: ['ip_sup_key', 'ip_prod_sup_key']
