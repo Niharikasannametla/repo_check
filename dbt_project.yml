@@ -10,6 +10,8 @@ config-version: 2
 profile: 'default'
 vars:
    pm_table_name: ['employee', 'department']
+   project_id: 'i-62hi-d0elk5mt-cha9nukcc2qhwf'
+   project_schema: 'dbt_ns'
 # These configurations specify where dbt should look for different types of files.
 # The `model-paths` config, for example, states that models in this project can be
 # found in the "models/" directory. You probably won't need to change these!
@@ -19,7 +21,8 @@ test-paths: ["tests"]
 seed-paths: ["seeds"]
 macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
-on-run-end: "{{ dbt_project_evaluator.print_dbt_project_evaluator_issues() }}"
+on-run-end:
+    - "{{ log_model_results(results) }}"
 
 target-path: "target"  # directory which will store compiled SQL files
 clean-targets:         # directories to be removed by `dbt clean`
