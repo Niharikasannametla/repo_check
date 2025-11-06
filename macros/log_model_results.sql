@@ -11,6 +11,8 @@
     {% set status = result.status %}
     {% set execution_time = result.execution_time | default(0) %}
     {% set run_id = invocation_id %}
+    {% set cloud_run_id = env_var('DBT_CLOUD_RUN_ID',0) %}
+    
 {# escaping special characters by using replace function in the model run message to avoid error while making entry to the model run table #}
     {% set message = result.message | replace("\\", "\\\\") | replace("'", "\\'")  | replace('"', '\\"') | replace('\n', ' ') | replace('\r', ' ')  
  %}
@@ -18,14 +20,15 @@
     {% do run_query(
       
 "INSERT INTO `" ~ project_id ~ "." ~ project_schema ~ ".model_run_log` (
-     model_name, status, execution_time, message, run_timestamp, run_id
+     model_name, status, execution_time, message, run_timestamp, model_run_id, job_flow_run_id 
    ) VALUES (
      '" ~ model_name ~ "',
      '" ~ status ~ "',
      " ~ execution_time ~ ",
      '" ~ message ~ "',
      CURRENT_TIMESTAMP,
-     '" ~ run_id ~ "'
+     farm_fingerprint('" ~ run_id ~ "'),
+    " ~ cloud_run_id ~ " 
    )"
     ) %}
   {% endfor %}

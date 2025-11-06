@@ -10,7 +10,7 @@ config-version: 2
 profile: 'default'
 vars:
    pm_table_name: ['employee', 'department']
-   project_id: 'i-62hi-d0elk5mt-cha9nukcc2qhwf'
+   project_id: 'i-9lh3-0flqt6c1-qsfuy90c0ar2gb'
    project_schema: 'dbt_ns'
 # These configurations specify where dbt should look for different types of files.
 # The `model-paths` config, for example, states that models in this project can be
