@@ -1,0 +1,34 @@
+
+name: dbt Project Evaluator Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  evaluator-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dbt and Evaluator
+        run: |
+          pip install dbt-core dbt-bigquery dbt-project-evaluator
+
+      - name: Configure dbt profiles
+        run: |
+          mkdir -p ~/.dbt
+          echo "${{ secrets.DBT_PROFILES_YML }}" > ~/.dbt/profiles.yml
+
+      - name: Run dbt Project Evaluator
+        run: |
+          dbt deps
+          dbt build --select package:dbt_project_evaluator
