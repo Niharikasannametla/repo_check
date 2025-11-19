@@ -18,7 +18,7 @@ jobs:
 
       - name: Install dbt and Evaluator
         run: |
-          pip install dbt-core dbt-bigquery dbt-project-evaluator
+          pip install dbt-core dbt-bigquery
 
       - name: Configure dbt profiles
         run: |
@@ -29,4 +29,5 @@ jobs:
         run: |
           dbt deps
           dbt build --select package:dbt_project_evaluator
+
 
