@@ -1,0 +1,21 @@
+on:
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  evaluator-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Run dbt Project Evaluator
+        run: |
+          dbt build --select package:dbt_project_evaluator

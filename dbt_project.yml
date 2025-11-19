@@ -29,6 +29,13 @@ clean-targets:         # directories to be removed by `dbt clean`
   - "target"
   - "dbt_packages"
 
+models:
+  dbt_project_evaluator:
+    +schema: dbt_ns_proj # Or any other desired schema name
+seeds:  
+  dbt_project_evaluator:
+    +schema: dbt_ns_proj
+  
 
 # Configuring models
 # Full documentation: https://docs.getdbt.com/docs/configuring-models
