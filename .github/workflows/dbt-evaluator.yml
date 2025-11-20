@@ -1,32 +1,18 @@
+name: Run dbt Cloud Job
+
 on:
   pull_request:
     branches:
-      - develop
+      - main
 
 jobs:
-  evaluator-check:
+  run-dbt-cloud-job:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install dbt and Evaluator
+      - name: Trigger dbt Cloud Job
         run: |
-          pip install dbt-core dbt-bigquery dbt-project-evaluator
-
-      - name: Configure dbt profiles
-        run: |
-          mkdir -p ~/.dbt
-          echo "${{ secrets.DBT_PROFILES_YML }}" > ~/.dbt/profiles.yml
-
-      - name: Run dbt Project Evaluator
-        run: |
-          dbt deps
-          dbt build --select package:dbt_project_evaluator
-
+          curl -X POST \
+            -H "Authorization: Token ${{ secrets.DBT_CLOUD_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"cause": "Triggered by GitHub PR", "git_sha": "${{ github.sha }}"}' \
+            https://fa321.eu2.dbt.com/api/v2/accounts/<account_id>/jobs/<Job_id>/run/
