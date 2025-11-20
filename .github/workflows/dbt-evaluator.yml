@@ -15,4 +15,4 @@ jobs:
             -H "Authorization: Token ${{ secrets.DBT_CLOUD_API_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d '{"cause": "Triggered by GitHub PR", "git_sha": "${{ github.sha }}"}' \
-            https://fa321.eu2.dbt.com/api/v2/accounts/<account_id>/jobs/<Job_id>/run/
+            https://fa321.eu2.dbt.com/api/v2/accounts/175956220182596/jobs/175956220197081/run/
