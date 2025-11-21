@@ -28,7 +28,7 @@ jobs:
             sleep 10
             response=$(curl -s -X GET \
               -H "Authorization: Token ${{ secrets.DBT_CLOUD_API_TOKEN }}" \
-              https://fa321.eu2.dbt.com/api/v2/accounts/<account_id>/runs/$run_id/)
+              https://fa321.eu2.dbt.com/api/v2/accounts/175956220182596/runs/$run_id/)
             status=$(echo $response | jq -r '.data.status')
             echo "Current status: $status"
           done
