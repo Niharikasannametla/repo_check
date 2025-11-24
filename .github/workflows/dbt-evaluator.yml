@@ -37,5 +37,3 @@ jobs:
             echo "dbt Cloud job failed with status: $status"
             exit 1
           fi
-
-
