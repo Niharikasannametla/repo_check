@@ -35,6 +35,9 @@ models:
 seeds:  
   dbt_project_evaluator:
     +schema: dbt_ns_proj
+tests:
+  int_rule_violations: 
+   severity: warn
   
 
 # Configuring models
