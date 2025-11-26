@@ -36,9 +36,11 @@ seeds:
   dbt_project_evaluator:
     +schema: dbt_ns_proj
 tests:
-  model_names_lower_case: 
-      +severity: warn
-      +store_failures: true
+ my_new_project:
+   model_names_lower_case: 
+     +schema: dbt_ns_proj
+     +severity: warn
+     +store_failures: true
   
 
 # Configuring models
