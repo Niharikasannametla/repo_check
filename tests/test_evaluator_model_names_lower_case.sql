@@ -1,3 +1,4 @@
+{# This test directly queries the internal model created by the dbt_project_evaluator package.#}
 select
     'Model names should be lowercase' as rule_description,
     resource_name as incorrect_model_value,
