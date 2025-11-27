@@ -1,0 +1,10 @@
+models:
+ - name : dim_customers
+   config:
+     contract:
+      enforced: true
+      columns:
+       - name: id1
+         data_type: string
+       - name: id2
+         data_type: string
