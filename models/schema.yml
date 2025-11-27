@@ -1,0 +1,13 @@
+models:
+ - name : hello
+   config:
+      access: public
+ - name : dim_customer
+   config:
+     contract:
+      enforced: true
+      columns:
+       - name: id1
+         data_type: int
+       - name: id2
+         data_type: int

@@ -32,16 +32,7 @@ clean-targets:         # directories to be removed by `dbt clean`
 models:
   dbt_project_evaluator:
     +schema: dbt_project_evaluator # Or any other desired schema name
-  hello:
-   access: public
-  dim_customer:
-   contract:
-     enforced: true
-     columns:
-       - name: id1
-         data_type: int
-       - name: id2
-         data_type: int
+  
 seeds:  
   dbt_project_evaluator:
     +schema: dbt_project_evaluator
