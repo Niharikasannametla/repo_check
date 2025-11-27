@@ -2,7 +2,7 @@ models:
  - name : hello
    config:
       access: public
- - name : dim_customer
+ - name : dim_customers
    config:
      contract:
       enforced: true
