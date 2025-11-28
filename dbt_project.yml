@@ -29,9 +29,7 @@ clean-targets:         # directories to be removed by `dbt clean`
   - "target"
   - "dbt_packages"
 
-data_tests:
-  dbt_project_evaluator:
-    +severity: "{{ env_var('DBT_PROJECT_EVALUATOR_SEVERITY', 'warn') }}"
+ 
 
 models:
   dbt_project_evaluator:
@@ -55,6 +53,8 @@ tests:
      +schema: dbt_project_evaluator
      +severity: warn
      +store_failures: true
+   dbt_project_evaluator:
+     +severity: "{{ env_var('DBT_PROJECT_EVALUATOR_SEVERITY', 'warn') }}"
   
 
 # Configuring models
