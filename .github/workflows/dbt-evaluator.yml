@@ -1,8 +1,6 @@
 
 name: Run dbt Cloud Job
 
-# Trigger workflow on pull requests targeting the main branch
-# (You can change this to 'develop' if needed)
 on:
   pull_request:
     branches:
@@ -19,19 +17,17 @@ jobs:
       - name: Trigger dbt Cloud Job
         id: trigger
         run: |
-          set -eo pipefail  # Exit on error and fail on pipe errors
-
+          set -eo pipefail
           echo "Triggering dbt Cloud job..."
 
-          # Make POST request to dbt Cloud API to start the job
-          # Use PR's head commit SHA (source branch) instead of merge commit
+          # Trigger dbt Cloud job using PR's head commit SHA (source branch)
           response=$(curl -s -X POST \
             -H "Authorization: Token ${{ secrets.DBT_CLOUD_API_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d "{\"cause\": \"Triggered by GitHub PR\", \"git_sha\": \"${{ github.event.pull_request.head.sha }}\"}" \
             https://fa321.eu2.dbt.com/api/v2/accounts/175956220182596/jobs/175956220197126/run/)
 
-          # Extract run_id from API response
+          # Extract run_id
           run_id=$(echo "$response" | jq -r '.data.id')
 
           # Validate run_id
@@ -41,10 +37,9 @@ jobs:
             exit 1
           fi
 
-          # Save run_id to GitHub environment for next step
+          # Save run_id and run URL for next step
           echo "run_id=$run_id" >> $GITHUB_ENV
-
-          # Print dbt Cloud run URL for easy access
+          echo "run_url=https://fa321.eu2.dbt.com/account/175956220182596/runs/$run_id" >> $GITHUB_ENV
           echo "Run URL: https://fa321.eu2.dbt.com/account/175956220182596/runs/$run_id"
 
       # ----------------------------------------
@@ -53,18 +48,17 @@ jobs:
       - name: Wait for dbt Cloud Job to finish
         run: |
           set -eo pipefail
-
           run_id="${{ env.run_id }}"
           echo "Polling dbt Cloud job status for run_id=$run_id..."
+          echo "Run details: ${{ env.run_url }}"
 
-          # Timeout after 30 minutes to avoid infinite loop
+          # Timeout after 30 minutes
           start_time=$(date +%s)
           timeout=1800  # 30 minutes
           status_code=""
 
-          # Poll until job reaches a terminal state
           while true; do
-            # Fetch job status from dbt Cloud API
+            # Fetch job status
             response=$(curl -s -X GET \
               -H "Authorization: Token ${{ secrets.DBT_CLOUD_API_TOKEN }}" \
               https://fa321.eu2.dbt.com/api/v2/accounts/175956220182596/runs/$run_id/)
@@ -75,6 +69,14 @@ jobs:
             # 10 = success, 20 = error, 30 = cancelled
             if [[ "$status_code" == "10" ]]; then
               echo "✅ dbt Cloud job completed successfully."
+              
+              # Print warnings if any (without failing)
+              warnings=$(echo "$response" | jq -r '.data.run_steps[]?.warnings // empty')
+              if [[ -n "$warnings" ]]; then
+                echo "⚠️ Warnings detected in dbt Cloud run:"
+                echo "$warnings"
+              fi
+
               exit 0
             elif [[ "$status_code" == "20" ]]; then
               echo "❌ dbt Cloud job failed."
@@ -93,6 +95,5 @@ jobs:
               exit 1
             fi
 
-            # Wait before next poll
             sleep 15
           done
