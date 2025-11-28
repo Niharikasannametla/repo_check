@@ -1,3 +1,4 @@
+
 name: Run dbt Cloud Job
 
 on:
@@ -8,32 +9,91 @@ on:
 jobs:
   run-dbt-cloud-job:
     runs-on: ubuntu-latest
+
     steps:
+      # -------------------------------
+      # STEP 1: Trigger dbt Cloud Job
+      # -------------------------------
       - name: Trigger dbt Cloud Job
         id: trigger
         run: |
+          set -eo pipefail
+          echo "Triggering dbt Cloud job..."
+
+          # Trigger dbt Cloud job using PR's head commit SHA (source branch)
           response=$(curl -s -X POST \
             -H "Authorization: Token ${{ secrets.DBT_CLOUD_API_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d '{"cause": "Triggered by GitHub PR", "git_sha": "${{ github.event.pull_request.head.sha }}"}' \
+            -d "{\"cause\": \"Triggered by GitHub PR\", \"git_sha\": \"${{ github.event.pull_request.head.sha }}\"}" \
             https://fa321.eu2.dbt.com/api/v2/accounts/175956220182596/jobs/175956220197126/run/)
-          
-          run_id=$(echo $response | jq -r '.data.id')
-          echo "run_id=$run_id" >> $GITHUB_ENV
 
+          # Extract run_id
+          run_id=$(echo "$response" | jq -r '.data.id')
+
+          # Validate run_id
+          if [[ -z "$run_id" || "$run_id" == "null" ]]; then
+            echo "❌ Failed to trigger dbt Cloud job. Response:"
+            echo "$response"
+            exit 1
+          fi
+
+          # Save run_id and run URL for next step
+          echo "run_id=$run_id" >> $GITHUB_ENV
+          echo "run_url=https://fa321.eu2.dbt.com/account/175956220182596/runs/$run_id" >> $GITHUB_ENV
+          echo "Run URL: https://fa321.eu2.dbt.com/account/175956220182596/runs/$run_id"
+
+      # ----------------------------------------
+      # STEP 2: Wait for dbt Cloud Job to finish
+      # ----------------------------------------
       - name: Wait for dbt Cloud Job to finish
         run: |
-          status="running"
-          while [ "$status" == "running" ] || [ "$status" == "queued" ]; do
-            sleep 10
+          set -eo pipefail
+          run_id="${{ env.run_id }}"
+          echo "Polling dbt Cloud job status for run_id=$run_id..."
+          echo "Run details: ${{ env.run_url }}"
+
+          # Timeout after 30 minutes
+          start_time=$(date +%s)
+          timeout=1800  # 30 minutes
+          status_code=""
+
+          while true; do
+            # Fetch job status
             response=$(curl -s -X GET \
               -H "Authorization: Token ${{ secrets.DBT_CLOUD_API_TOKEN }}" \
               https://fa321.eu2.dbt.com/api/v2/accounts/175956220182596/runs/$run_id/)
-            status=$(echo $response | jq -r '.data.status')
-            echo "Current status: $status"
-          done
+            status_code=$(echo "$response" | jq -r '.data.status')
 
-          if [ "$status" != "success" ]; then
-            echo "dbt Cloud job failed with status: $status"
-            exit 1
-          fi
+            # dbt Cloud status codes:
+            # 1 = queued, 2 = starting, 3 = running
+            # 10 = success, 20 = error, 30 = cancelled
+            if [[ "$status_code" == "10" ]]; then
+              echo "✅ dbt Cloud job completed successfully."
+              
+              # Print warnings if any (without failing)
+              warnings=$(echo "$response" | jq -r '.data.run_steps[]?.warnings // empty')
+              if [[ -n "$warnings" ]]; then
+                echo "⚠️ Warnings detected in dbt Cloud run:"
+                echo "$warnings"
+              fi
+
+              exit 0
+            elif [[ "$status_code" == "20" ]]; then
+              echo "❌ dbt Cloud job failed."
+              exit 1
+            elif [[ "$status_code" == "30" ]]; then
+              echo "⚠️ dbt Cloud job was cancelled."
+              exit 1
+            else
+              echo "Current status: $status_code (waiting...)"
+            fi
+
+            # Check timeout
+            now=$(date +%s)
+            if (( now - start_time > timeout )); then
+              echo "⏱️ Timeout reached after $timeout seconds."
+              exit 1
+            fi
+
+            sleep 15
+          done
