@@ -30,8 +30,35 @@ clean-targets:         # directories to be removed by `dbt clean`
   - "dbt_packages"
 
  
-
+ 
 models:
+ my_new_project:
+  test_evaluator_assert_no_public_models:
+   +enabled: false
+  test_evaluator_contract_enforcement:
+   +enabled: false
+  test_evaluator_model_names_lower_case:
+   +enabled: false
+  valid_documentation_coverage:
+   +enabled: false
+  is_empty_fct_public_models_without_contract_:
+   +enabled: false
+  is_empty_fct_model_naming_conventions_:
+   +enabled: false
+  is_empty_fct_undocumented_models_:
+   +enabled: false
+  is_empty_fct_undocumented_public_models_:
+   +enabled: false 
+  is_empty_fct_missing_primary_key_tests_:
+   +enabled: false
+  valid_test_coverage:
+   +enabled: false
+  is_empty_fct_model_directories_:
+   +enabled: false
+  is_empty_fct_model_fanout_:
+   +enabled: false
+  is_empty_fct_root_models_:
+   +enabled: false 
   dbt_project_evaluator:
     +schema: dbt_project_evaluator # Or any other desired schema name
   
