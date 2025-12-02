@@ -30,9 +30,9 @@ clean-targets:         # directories to be removed by `dbt clean`
   - "dbt_packages"
 
  
-
+ 
 models:
-  dbt_project_evaluator:
+ dbt_project_evaluator:
     +schema: dbt_project_evaluator # Or any other desired schema name
   
 seeds:  
@@ -43,14 +43,17 @@ tests:
  my_new_project:
    test_evaluator_model_names_lower_case: 
      +schema: dbt_project_evaluator
+     +enabled: false
      +severity: "{{ env_var('DBT_PROJECT_EVALUATOR_SEVERITY', 'warn') }}"
      +store_failures: true
    test_evaluator_assert_no_public_models: 
+     +enabled: false
      +schema: dbt_project_evaluator
      +severity: "{{ env_var('DBT_PROJECT_EVALUATOR_SEVERITY', 'warn') }}"
      +store_failures: true
    test_evaluator_contract_enforcement: 
      +schema: dbt_project_evaluator
+     +enabled: false
      +severity: "{{ env_var('DBT_PROJECT_EVALUATOR_SEVERITY', 'warn') }}"
      +store_failures: true
    dbt_project_evaluator:
