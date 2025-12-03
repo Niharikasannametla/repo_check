@@ -14,28 +14,31 @@ jobs:
       # -------------------------------
       # STEP 1: Trigger FIRST dbt Cloud Job
       # -------------------------------
-      - name: Trigger First dbt Cloud Job
+      - name: Trigger FIRST dbt Cloud Job
         id: trigger-job1
         run: |
           set -eo pipefail
-          echo "Triggering FIRST dbt Cloud job..."
-
           JOB1_ID=175956220197126  # Replace with your first job ID
+          ACCOUNT_ID=${{ secrets.DBT_CLOUD_ACCOUNT_ID }}
+          API_TOKEN=${{ secrets.DBT_CLOUD_API_TOKEN }}
+
+          echo "Triggering FIRST dbt Cloud job..."
           response=$(curl -s -X POST \
-            -H "Authorization: Token ${{ secrets.DBT_CLOUD_API_TOKEN }}" \
+            -H "Authorization: Token $API_TOKEN" \
             -H "Content-Type: application/json" \
             -d "{\"cause\": \"Triggered by GitHub PR\", \"git_sha\": \"${{ github.event.pull_request.head.sha }}\"}" \
-            https://fa321.eu2.dbt.com/api/v2/accounts/${{ secrets.DBT_CLOUD_ACCOUNT_ID }}/jobs/$JOB1_ID/run/)
+            "https://fa321.eu2.dbt.com/api/v2/accounts/$ACCOUNT_ID/jobs/$JOB1_ID/run/")
+
+          echo "Raw API Response: $response"
 
           run_id=$(echo "$response" | jq -r '.data.id')
           if [[ -z "$run_id" || "$run_id" == "null" ]]; then
             echo "❌ Failed to trigger FIRST dbt Cloud job."
-            echo "$response"
             exit 1
           fi
 
           echo "run_id_job1=$run_id" >> $GITHUB_ENV
-          echo "run_url_job1=https://fa321.eu2.dbt.com/account/${{ secrets.DBT_CLOUD_ACCOUNT_ID }}/runs/$run_id" >> $GITHUB_ENV
+          echo "run_url_job1=https://fa321.eu2.dbt.com/account/$ACCOUNT_ID/runs/$run_id" >> $GITHUB_ENV
           echo "Run URL: ${{ env.run_url_job1 }}"
 
       # ----------------------------------------
@@ -45,6 +48,9 @@ jobs:
         run: |
           set -eo pipefail
           run_id="${{ env.run_id_job1 }}"
+          ACCOUNT_ID=${{ secrets.DBT_CLOUD_ACCOUNT_ID }}
+          API_TOKEN=${{ secrets.DBT_CLOUD_API_TOKEN }}
+
           echo "Polling FIRST dbt Cloud job status for run_id=$run_id..."
           echo "Run details: ${{ env.run_url_job1 }}"
 
@@ -54,8 +60,8 @@ jobs:
 
           while true; do
             response=$(curl -s -X GET \
-              -H "Authorization: Token ${{ secrets.DBT_CLOUD_API_TOKEN }}" \
-              https://fa321.eu2.dbt.com/api/v2/accounts/${{ secrets.DBT_CLOUD_ACCOUNT_ID }}/runs/$run_id/)
+              -H "Authorization: Token $API_TOKEN" \
+              "https://fa321.eu2.dbt.com/api/v2/accounts/$ACCOUNT_ID/runs/$run_id/")
             status_code=$(echo "$response" | jq -r '.data.status')
 
             if [[ "$status_code" == "10" ]]; then
@@ -87,6 +93,9 @@ jobs:
         run: |
           set -eo pipefail
           JOB2_ID=175956220197685  # Your second job ID
+          ACCOUNT_ID=${{ secrets.DBT_CLOUD_ACCOUNT_ID }}
+          API_TOKEN=${{ secrets.DBT_CLOUD_API_TOKEN }}
+
           echo "Polling SECOND dbt Cloud job status for job_id=$JOB2_ID..."
 
           start_time=$(date +%s)
@@ -95,8 +104,8 @@ jobs:
 
           while true; do
             response=$(curl -s -X GET \
-              -H "Authorization: Token ${{ secrets.DBT_CLOUD_API_TOKEN }}" \
-              "https://fa321.eu2.dbt.com/api/v2/accounts/${{ secrets.DBT_CLOUD_ACCOUNT_ID }}/runs/?job_definition_id=$JOB2_ID&order_by=-id&limit=1")
+              -H "Authorization: Token $API_TOKEN" \
+              "https://fa321.eu2.dbt.com/api/v2/accounts/$ACCOUNT_ID/runs/?job_definition_id=$JOB2_ID&order_by=-id&limit=1")
 
             run_id=$(echo "$response" | jq -r '.data[0].id')
             status_code=$(echo "$response" | jq -r '.data[0].status')
