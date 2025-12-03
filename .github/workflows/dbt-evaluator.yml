@@ -1,5 +1,5 @@
 
-name: Run dbt Cloud Job
+name: Run dbt Cloud Jobs
 
 on:
   pull_request:
@@ -7,88 +7,115 @@ on:
       - main
 
 jobs:
-  run-dbt-cloud-job:
+  run-dbt-cloud-jobs:
     runs-on: ubuntu-latest
 
     steps:
       # -------------------------------
-      # STEP 1: Trigger dbt Cloud Job
+      # STEP 1: Trigger FIRST dbt Cloud Job
       # -------------------------------
-      - name: Trigger dbt Cloud Job
-        id: trigger
+      - name: Trigger First dbt Cloud Job
+        id: trigger-job1
         run: |
           set -eo pipefail
-          echo "Triggering dbt Cloud job..."
+          echo "Triggering FIRST dbt Cloud job..."
 
-          # Trigger dbt Cloud job using PR's head commit SHA (source branch)
+          JOB1_ID=175956220197126  # Replace with your first job ID
           response=$(curl -s -X POST \
             -H "Authorization: Token ${{ secrets.DBT_CLOUD_API_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d "{\"cause\": \"Triggered by GitHub PR\", \"git_sha\": \"${{ github.event.pull_request.head.sha }}\"}" \
-            https://fa321.eu2.dbt.com/api/v2/accounts/175956220182596/jobs/175956220197126/run/)
+            https://fa321.eu2.dbt.com/api/v2/accounts/${{ secrets.DBT_CLOUD_ACCOUNT_ID }}/jobs/$JOB1_ID/run/)
 
-          # Extract run_id
           run_id=$(echo "$response" | jq -r '.data.id')
-
-          # Validate run_id
           if [[ -z "$run_id" || "$run_id" == "null" ]]; then
-            echo "❌ Failed to trigger dbt Cloud job. Response:"
+            echo "❌ Failed to trigger FIRST dbt Cloud job."
             echo "$response"
             exit 1
           fi
 
-          # Save run_id and run URL for next step
-          echo "run_id=$run_id" >> $GITHUB_ENV
-          echo "run_url=https://fa321.eu2.dbt.com/account/175956220182596/runs/$run_id" >> $GITHUB_ENV
-          echo "Run URL: https://fa321.eu2.dbt.com/account/175956220182596/runs/$run_id"
+          echo "run_id_job1=$run_id" >> $GITHUB_ENV
+          echo "run_url_job1=https://fa321.eu2.dbt.com/account/${{ secrets.DBT_CLOUD_ACCOUNT_ID }}/runs/$run_id" >> $GITHUB_ENV
+          echo "Run URL: ${{ env.run_url_job1 }}"
 
       # ----------------------------------------
-      # STEP 2: Wait for dbt Cloud Job to finish
+      # STEP 2: Wait for FIRST dbt Cloud Job to finish
       # ----------------------------------------
-      - name: Wait for dbt Cloud Job to finish
+      - name: Wait for FIRST dbt Cloud Job to finish
         run: |
           set -eo pipefail
-          run_id="${{ env.run_id }}"
-          echo "Polling dbt Cloud job status for run_id=$run_id..."
-          echo "Run details: ${{ env.run_url }}"
+          run_id="${{ env.run_id_job1 }}"
+          echo "Polling FIRST dbt Cloud job status for run_id=$run_id..."
+          echo "Run details: ${{ env.run_url_job1 }}"
 
-          # Timeout after 30 minutes
           start_time=$(date +%s)
           timeout=1800  # 30 minutes
           status_code=""
 
           while true; do
-            # Fetch job status
             response=$(curl -s -X GET \
               -H "Authorization: Token ${{ secrets.DBT_CLOUD_API_TOKEN }}" \
-              https://fa321.eu2.dbt.com/api/v2/accounts/175956220182596/runs/$run_id/)
+              https://fa321.eu2.dbt.com/api/v2/accounts/${{ secrets.DBT_CLOUD_ACCOUNT_ID }}/runs/$run_id/)
             status_code=$(echo "$response" | jq -r '.data.status')
 
-            # dbt Cloud status codes:
-            # 1 = queued, 2 = starting, 3 = running
-            # 10 = success, 20 = error, 30 = cancelled
             if [[ "$status_code" == "10" ]]; then
-              echo "✅ dbt Cloud job completed successfully."
-              
-              # Print warnings if any (without failing)
-              warnings=$(echo "$response" | jq -r '.data.run_steps[]?.warnings // empty')
-              if [[ -n "$warnings" ]]; then
-                echo "⚠️ Warnings detected in dbt Cloud run:"
-                echo "$warnings"
-              fi
-
-              exit 0
+              echo "✅ FIRST dbt Cloud job completed successfully."
+              break
             elif [[ "$status_code" == "20" ]]; then
-              echo "❌ dbt Cloud job failed."
+              echo "❌ FIRST dbt Cloud job failed."
               exit 1
             elif [[ "$status_code" == "30" ]]; then
-              echo "⚠️ dbt Cloud job was cancelled."
+              echo "⚠️ FIRST dbt Cloud job was cancelled."
               exit 1
             else
               echo "Current status: $status_code (waiting...)"
             fi
 
-            # Check timeout
+            now=$(date +%s)
+            if (( now - start_time > timeout )); then
+              echo "⏱️ Timeout reached after $timeout seconds."
+              exit 1
+            fi
+
+            sleep 15
+          done
+
+      # ----------------------------------------
+      # STEP 3: Monitor SECOND dbt Cloud Job (Dependent)
+      # ----------------------------------------
+      - name: Wait for SECOND dbt Cloud Job to finish
+        run: |
+          set -eo pipefail
+          JOB2_ID=175956220197685  # Your second job ID
+          echo "Polling SECOND dbt Cloud job status for job_id=$JOB2_ID..."
+
+          start_time=$(date +%s)
+          timeout=1800  # 30 minutes
+          status_code=""
+
+          while true; do
+            response=$(curl -s -X GET \
+              -H "Authorization: Token ${{ secrets.DBT_CLOUD_API_TOKEN }}" \
+              "https://fa321.eu2.dbt.com/api/v2/accounts/${{ secrets.DBT_CLOUD_ACCOUNT_ID }}/runs/?job_definition_id=$JOB2_ID&order_by=-id&limit=1")
+
+            run_id=$(echo "$response" | jq -r '.data[0].id')
+            status_code=$(echo "$response" | jq -r '.data[0].status')
+
+            echo "Job 2 Run ID: $run_id | Status: $status_code"
+
+            if [[ "$status_code" == "10" ]]; then
+              echo "✅ SECOND dbt Cloud job completed successfully."
+              break
+            elif [[ "$status_code" == "20" ]]; then
+              echo "❌ SECOND dbt Cloud job failed."
+              exit 1
+            elif [[ "$status_code" == "30" ]]; then
+              echo "⚠️ SECOND dbt Cloud job was cancelled."
+              exit 1
+            else
+              echo "Current status: $status_code (waiting...)"
+            fi
+
             now=$(date +%s)
             if (( now - start_time > timeout )); then
               echo "⏱️ Timeout reached after $timeout seconds."
