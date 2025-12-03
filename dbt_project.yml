@@ -39,8 +39,10 @@ seeds:
   dbt_project_evaluator:
     +schema: dbt_project_evaluator
 
-data_tests:
+tests:
   my_new_project:
+   dbt_project_evaluator:
+     +severity: "{{ env_var('DBT_PROJECT_EVALUATOR_SEVERITY', 'warn') }}"
    test_evaluator_model_names_lower_case: 
      +schema: dbt_project_evaluator
      +severity: "{{ env_var('DBT_PROJECT_EVALUATOR_SEVERITY', 'warn') }}"
@@ -56,8 +58,7 @@ data_tests:
      +severity: "{{ env_var('DBT_PROJECT_EVALUATOR_SEVERITY', 'warn') }}"
      +store_failures: true
      +tags: dbt_project_evaluator_test_case
-   dbt_project_evaluator:
-     +severity: "{{ env_var('DBT_PROJECT_EVALUATOR_SEVERITY', 'warn') }}"
+
   
 
 # Configuring models
