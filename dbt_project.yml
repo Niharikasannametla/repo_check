@@ -45,16 +45,20 @@ tests:
      +schema: dbt_project_evaluator
      +severity: "{{ env_var('DBT_PROJECT_EVALUATOR_SEVERITY', 'warn') }}"
      +store_failures: true
+     +tags: dbt_project_evaluator_test_case
    test_evaluator_assert_no_public_models:
      +schema: dbt_project_evaluator
      +severity: "{{ env_var('DBT_PROJECT_EVALUATOR_SEVERITY', 'warn') }}"
      +store_failures: true
+     +tags: dbt_project_evaluator_test_case
    test_evaluator_contract_enforcement: 
      +schema: dbt_project_evaluator
      +severity: "{{ env_var('DBT_PROJECT_EVALUATOR_SEVERITY', 'warn') }}"
      +store_failures: true
+     +tags: dbt_project_evaluator_test_case
    dbt_project_evaluator:
      +severity: "{{ env_var('DBT_PROJECT_EVALUATOR_SEVERITY', 'warn') }}"
+     +tags: dbt_project_evaluator_test_case
   
 
 # Configuring models
