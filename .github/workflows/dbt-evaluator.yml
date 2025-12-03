@@ -32,12 +32,15 @@ jobs:
           echo "Raw API Response: $response"
 
           run_id=$(echo "$response" | jq -r '.data.id')
+          job1_name=$(echo "$response" | jq -r '.data.job_definition.name')
+
           if [[ -z "$run_id" || "$run_id" == "null" ]]; then
             echo "❌ Failed to trigger FIRST dbt Cloud job."
             exit 1
           fi
 
           echo "run_id_job1=$run_id" >> $GITHUB_ENV
+          echo "job1_name=$job1_name" >> $GITHUB_ENV
           echo "run_url_job1=https://fa321.eu2.dbt.com/account/$ACCOUNT_ID/runs/$run_id" >> $GITHUB_ENV
           echo "Run URL: ${{ env.run_url_job1 }}"
 
@@ -111,6 +114,7 @@ jobs:
           timeout=1800  # 30 minutes
           status_code=""
           job2_failed=false
+          job2_name=""
 
           while true; do
             response=$(curl -s -X GET \
@@ -119,8 +123,9 @@ jobs:
 
             run_id=$(echo "$response" | jq -r '.data[0].id')
             status_code=$(echo "$response" | jq -r '.data[0].status')
+            job2_name=$(echo "$response" | jq -r '.data[0].job_definition.name')
 
-            echo "Job 2 Run ID: $run_id | Status: $status_code"
+            echo "Job 2 Run ID: $run_id | Status: $status_code | Name: $job2_name"
 
             if [[ "$status_code" == "10" ]]; then
               echo "✅ SECOND dbt Cloud job completed successfully."
@@ -148,30 +153,44 @@ jobs:
           done
 
           echo "job2_failed=$job2_failed" >> $GITHUB_ENV
+          echo "job2_name=$job2_name" >> $GITHUB_ENV
 
       # ----------------------------------------
-      # STEP 4: Final Check - Fail if either job failed
+      # STEP 4: Final Status Check - Show Success and Failures
       # ----------------------------------------
       - name: Final Status Check
         run: |
           job1_failed="${{ env.job1_failed }}"
           job2_failed="${{ env.job2_failed }}"
+          job1_name="${{ env.job1_name }}"
+          job2_name="${{ env.job2_name }}"
+          success_jobs=""
           failed_jobs=""
 
           if [[ "$job1_failed" == "true" ]]; then
-            failed_jobs="Job1(ID:175956220197126)"
+            failed_jobs="Job1: $job1_name (ID:175956220197126)"
+          else
+            success_jobs="Job1: $job1_name (ID:175956220197126)"
           fi
+
           if [[ "$job2_failed" == "true" ]]; then
             if [[ -n "$failed_jobs" ]]; then
-              failed_jobs="$failed_jobs and Job2(ID:175956220197685)"
+              failed_jobs="$failed_jobs and Job2: $job2_name (ID:175956220197685)"
             else
-              failed_jobs="Job2(ID:175956220197685)"
+              failed_jobs="Job2: $job2_name (ID:175956220197685)"
+            fi
+          else
+            if [[ -n "$success_jobs" ]]; then
+              success_jobs="$success_jobs and Job2: $job2_name (ID:175956220197685)"
+            else
+              success_jobs="Job2: $job2_name (ID:175956220197685)"
             fi
           fi
 
+          echo "✅ Successful Jobs: $success_jobs"
           if [[ -n "$failed_jobs" ]]; then
-            echo "❌ Workflow failed because: $failed_jobs"
+            echo "❌ Failed Jobs: $failed_jobs"
             exit 1
           else
-            echo "✅ Both dbt Cloud jobs completed successfully."
+            echo "🎉 All dbt Cloud jobs completed successfully."
           fi
