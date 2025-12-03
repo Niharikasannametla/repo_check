@@ -42,9 +42,11 @@ jobs:
           echo "Run URL: ${{ env.run_url_job1 }}"
 
       # ----------------------------------------
-      # STEP 2: Wait for FIRST dbt Cloud Job to finish
+      # STEP 2: Wait for FIRST dbt Cloud Job to finish (DO NOT EXIT)
       # ----------------------------------------
       - name: Wait for FIRST dbt Cloud Job to finish
+        id: wait-job1
+        continue-on-error: true
         run: |
           set -eo pipefail
           run_id="${{ env.run_id_job1 }}"
@@ -57,6 +59,7 @@ jobs:
           start_time=$(date +%s)
           timeout=1800  # 30 minutes
           status_code=""
+          job1_failed=false
 
           while true; do
             response=$(curl -s -X GET \
@@ -69,10 +72,12 @@ jobs:
               break
             elif [[ "$status_code" == "20" ]]; then
               echo "❌ FIRST dbt Cloud job failed."
-              exit 1
+              job1_failed=true
+              break
             elif [[ "$status_code" == "30" ]]; then
               echo "⚠️ FIRST dbt Cloud job was cancelled."
-              exit 1
+              job1_failed=true
+              break
             else
               echo "Current status: $status_code (waiting...)"
             fi
@@ -80,16 +85,20 @@ jobs:
             now=$(date +%s)
             if (( now - start_time > timeout )); then
               echo "⏱️ Timeout reached after $timeout seconds."
-              exit 1
+              job1_failed=true
+              break
             fi
 
             sleep 15
           done
 
+          echo "job1_failed=$job1_failed" >> $GITHUB_ENV
+
       # ----------------------------------------
-      # STEP 3: Monitor SECOND dbt Cloud Job (Dependent)
+      # STEP 3: Monitor SECOND dbt Cloud Job (Always Run)
       # ----------------------------------------
       - name: Wait for SECOND dbt Cloud Job to finish
+        id: wait-job2
         run: |
           set -eo pipefail
           JOB2_ID=175956220197685
@@ -101,6 +110,7 @@ jobs:
           start_time=$(date +%s)
           timeout=1800  # 30 minutes
           status_code=""
+          job2_failed=false
 
           while true; do
             response=$(curl -s -X GET \
@@ -117,10 +127,12 @@ jobs:
               break
             elif [[ "$status_code" == "20" ]]; then
               echo "❌ SECOND dbt Cloud job failed."
-              exit 1
+              job2_failed=true
+              break
             elif [[ "$status_code" == "30" ]]; then
               echo "⚠️ SECOND dbt Cloud job was cancelled."
-              exit 1
+              job2_failed=true
+              break
             else
               echo "Current status: $status_code (waiting...)"
             fi
@@ -128,8 +140,38 @@ jobs:
             now=$(date +%s)
             if (( now - start_time > timeout )); then
               echo "⏱️ Timeout reached after $timeout seconds."
-              exit 1
+              job2_failed=true
+              break
             fi
 
             sleep 15
           done
+
+          echo "job2_failed=$job2_failed" >> $GITHUB_ENV
+
+      # ----------------------------------------
+      # STEP 4: Final Check - Fail if either job failed
+      # ----------------------------------------
+      - name: Final Status Check
+        run: |
+          job1_failed="${{ env.job1_failed }}"
+          job2_failed="${{ env.job2_failed }}"
+          failed_jobs=""
+
+          if [[ "$job1_failed" == "true" ]]; then
+            failed_jobs="Job1(ID:175956220197126)"
+          fi
+          if [[ "$job2_failed" == "true" ]]; then
+            if [[ -n "$failed_jobs" ]]; then
+              failed_jobs="$failed_jobs and Job2(ID:175956220197685)"
+            else
+              failed_jobs="Job2(ID:175956220197685)"
+            fi
+          fi
+
+          if [[ -n "$failed_jobs" ]]; then
+            echo "❌ Workflow failed because: $failed_jobs"
+            exit 1
+          else
+            echo "✅ Both dbt Cloud jobs completed successfully."
+          fi
