@@ -1,5 +1,5 @@
 
-name: Run dbt Cloud Job
+name: Run dbt Cloud Jobs
 
 on:
   pull_request:
@@ -7,93 +7,146 @@ on:
       - main
 
 jobs:
-  run-dbt-cloud-job:
+  run-dbt-cloud-jobs:
     runs-on: ubuntu-latest
 
     steps:
       # -------------------------------
-      # STEP 1: Trigger dbt Cloud Job
+      # STEP 1: Trigger FIRST dbt Cloud Job (check_eval)
       # -------------------------------
-      - name: Trigger dbt Cloud Job
-        id: trigger
+      - name: Trigger FIRST dbt Cloud Job (check_eval)
         run: |
           set -eo pipefail
-          echo "Triggering dbt Cloud job..."
+          JOB1_ID=175956220197126
+          ACCOUNT_ID=175956220182596
+          API_TOKEN=${{ secrets.DBT_CLOUD_API_TOKEN }}
 
-          # Trigger dbt Cloud job using PR's head commit SHA (source branch)
+          echo "Triggering FIRST dbt Cloud job (check_eval)..."
           response=$(curl -s -X POST \
-            -H "Authorization: Token ${{ secrets.DBT_CLOUD_API_TOKEN }}" \
+            -H "Authorization: Token $API_TOKEN" \
             -H "Content-Type: application/json" \
             -d "{\"cause\": \"Triggered by GitHub PR\", \"git_sha\": \"${{ github.event.pull_request.head.sha }}\"}" \
-            https://fa321.eu2.dbt.com/api/v2/accounts/175956220182596/jobs/175956220197126/run/)
+            "https://fa321.eu2.dbt.com/api/v2/accounts/$ACCOUNT_ID/jobs/$JOB1_ID/run/")
 
-          # Extract run_id
           run_id=$(echo "$response" | jq -r '.data.id')
-
-          # Validate run_id
           if [[ -z "$run_id" || "$run_id" == "null" ]]; then
-            echo "❌ Failed to trigger dbt Cloud job. Response:"
-            echo "$response"
+            echo "❌ Failed to trigger FIRST dbt Cloud job (check_eval)."
             exit 1
           fi
 
-          # Save run_id and run URL for next step
-          echo "run_id=$run_id" >> $GITHUB_ENV
-          echo "run_url=https://fa321.eu2.dbt.com/account/175956220182596/runs/$run_id" >> $GITHUB_ENV
-          echo "Run URL: https://fa321.eu2.dbt.com/account/175956220182596/runs/$run_id"
+          echo "run_id_job1=$run_id" >> $GITHUB_ENV
 
       # ----------------------------------------
-      # STEP 2: Wait for dbt Cloud Job to finish
+      # STEP 2: Wait for FIRST dbt Cloud Job (check_eval) - Do NOT exit
       # ----------------------------------------
-      - name: Wait for dbt Cloud Job to finish
+      - name: Wait for FIRST dbt Cloud Job (check_eval)
+        continue-on-error: true
         run: |
-          set -eo pipefail
-          run_id="${{ env.run_id }}"
-          echo "Polling dbt Cloud job status for run_id=$run_id..."
-          echo "Run details: ${{ env.run_url }}"
+          run_id="${{ env.run_id_job1 }}"
+          ACCOUNT_ID=175956220182596
+          API_TOKEN=${{ secrets.DBT_CLOUD_API_TOKEN }}
+          job1_failed=false
 
-          # Timeout after 30 minutes
+          echo "Polling FIRST dbt Cloud job (check_eval)..."
           start_time=$(date +%s)
-          timeout=1800  # 30 minutes
-          status_code=""
+          timeout=1800
 
           while true; do
-            # Fetch job status
-            response=$(curl -s -X GET \
-              -H "Authorization: Token ${{ secrets.DBT_CLOUD_API_TOKEN }}" \
-              https://fa321.eu2.dbt.com/api/v2/accounts/175956220182596/runs/$run_id/)
-            status_code=$(echo "$response" | jq -r '.data.status')
+            status_code=$(curl -s -X GET \
+              -H "Authorization: Token $API_TOKEN" \
+              "https://fa321.eu2.dbt.com/api/v2/accounts/$ACCOUNT_ID/runs/$run_id/" | jq -r '.data.status')
 
-            # dbt Cloud status codes:
-            # 1 = queued, 2 = starting, 3 = running
-            # 10 = success, 20 = error, 30 = cancelled
             if [[ "$status_code" == "10" ]]; then
-              echo "✅ dbt Cloud job completed successfully."
-              
-              # Print warnings if any (without failing)
-              warnings=$(echo "$response" | jq -r '.data.run_steps[]?.warnings // empty')
-              if [[ -n "$warnings" ]]; then
-                echo "⚠️ Warnings detected in dbt Cloud run:"
-                echo "$warnings"
-              fi
-
-              exit 0
-            elif [[ "$status_code" == "20" ]]; then
-              echo "❌ dbt Cloud job failed."
-              exit 1
-            elif [[ "$status_code" == "30" ]]; then
-              echo "⚠️ dbt Cloud job was cancelled."
-              exit 1
-            else
-              echo "Current status: $status_code (waiting...)"
+              echo "✅ check_eval completed successfully."
+              break
+            elif [[ "$status_code" == "20" || "$status_code" == "30" ]]; then
+              echo "❌ check_eval failed or cancelled."
+              job1_failed=true
+              break
             fi
 
-            # Check timeout
-            now=$(date +%s)
-            if (( now - start_time > timeout )); then
-              echo "⏱️ Timeout reached after $timeout seconds."
-              exit 1
+            if (( $(date +%s) - start_time > timeout )); then
+              echo "⏱ Timeout reached for check_eval."
+              job1_failed=true
+              break
             fi
-
             sleep 15
           done
+
+          echo "job1_failed=$job1_failed" >> $GITHUB_ENV
+
+      # ----------------------------------------
+      # STEP 3: Monitor SECOND dbt Cloud Job (check_eval_add)
+      # ----------------------------------------
+      - name: Wait for SECOND dbt Cloud Job (check_eval_add)
+        run: |
+          JOB2_ID=175956220197685
+          ACCOUNT_ID=175956220182596
+          API_TOKEN=${{ secrets.DBT_CLOUD_API_TOKEN }}
+          job2_failed=false
+
+          echo "Polling SECOND dbt Cloud job (check_eval_add)..."
+          start_time=$(date +%s)
+          timeout=1800
+
+          while true; do
+            status_code=$(curl -s -X GET \
+              -H "Authorization: Token $API_TOKEN" \
+              "https://fa321.eu2.dbt.com/api/v2/accounts/$ACCOUNT_ID/runs/?job_definition_id=$JOB2_ID&order_by=-id&limit=1" | jq -r '.data[0].status')
+
+            if [[ "$status_code" == "10" ]]; then
+              echo "✅ check_eval_add completed successfully."
+              break
+            elif [[ "$status_code" == "20" || "$status_code" == "30" ]]; then
+              echo "❌ check_eval_add failed or cancelled."
+              job2_failed=true
+              break
+            fi
+
+            if (( $(date +%s) - start_time > timeout )); then
+              echo "⏱ Timeout reached for check_eval_add."
+              job2_failed=true
+              break
+            fi
+            sleep 15
+          done
+
+          echo "job2_failed=$job2_failed" >> $GITHUB_ENV
+
+      # ----------------------------------------
+      # STEP 4: Final Status Check
+      # ----------------------------------------
+      - name: Final Status Check
+        run: |
+          job1_failed="${{ env.job1_failed }}"
+          job2_failed="${{ env.job2_failed }}"
+          success_jobs=""
+          failed_jobs=""
+
+          if [[ "$job1_failed" == "true" ]]; then
+            failed_jobs="check_eval (ID:175956220197126)"
+          else
+            success_jobs="check_eval (ID:175956220197126)"
+          fi
+
+          if [[ "$job2_failed" == "true" ]]; then
+            if [[ -n "$failed_jobs" ]]; then
+              failed_jobs="$failed_jobs and check_eval_add (ID:175956220197685)"
+            else
+              failed_jobs="check_eval_add (ID:175956220197685)"
+            fi
+          else
+            if [[ -n "$success_jobs" ]]; then
+              success_jobs="$success_jobs and check_eval_add (ID:175956220197685)"
+            else
+              success_jobs="check_eval_add (ID:175956220197685)"
+            fi
+          fi
+
+          echo "✅ Successful Jobs: $success_jobs"
+          if [[ -n "$failed_jobs" ]]; then
+            echo "❌ Failed Jobs: $failed_jobs"
+            exit 1
+          else
+            echo "🎉 All dbt Cloud jobs completed successfully."
+          fi
