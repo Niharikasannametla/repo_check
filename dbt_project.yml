@@ -12,7 +12,7 @@ vars:
    pm_table_name: ['employee', 'department']
    project_id: 'i-9lh3-0flqt6c1-qsfuy90c0ar2gb'
    project_schema: 'dbt_ns'
-   ci_schema: dbt_project_evaluator
+   #ci_schema: dbt_project_evaluator
 # These configurations specify where dbt should look for different types of files.
 # The `model-paths` config, for example, states that models in this project can be
 # found in the "models/" directory. You probably won't need to change these!
