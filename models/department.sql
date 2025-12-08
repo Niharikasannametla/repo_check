@@ -26,7 +26,7 @@ from
             'Sales' as department_name,
             'Amsterdam' as department_location
 
-        union all
+        unionall
 
         select
             400 as department_id,
