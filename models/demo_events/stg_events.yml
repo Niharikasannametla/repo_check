@@ -1,0 +1,32 @@
+models:
+  - name: stg_events
+    description: This model stages event data by filtering and cleaning raw events from the last 180 days. It prepares the data for further analysis by ensuring each event has a user, type, timestamp, session, device, and country information. The model also derives the event date from the timestamp for easier date-based analysis.
+    columns:
+      - name: user_id
+        description: The unique identifier for the user who performed the event.
+        tests:
+          - not_null
+      - name: event_type
+        description: The type or category of the event performed by the user.
+        tests:
+          - not_null
+      - name: event_timestamp
+        description: The exact time when the event occurred, in UTC.
+        tests:
+          - not_null
+      - name: session_id
+        description: The unique identifier for the session during which the event occurred.
+        tests:
+          - not_null
+      - name: device
+        description: The device used by the user to perform the event.
+        tests:
+          - not_null
+      - name: country
+        description: The country from which the event was performed, defaulting to 'unknown' if not specified.
+        tests:
+          - not_null
+      - name: event_date
+        description: The date on which the event occurred, derived from the event timestamp.
+        tests:
+          - not_null
