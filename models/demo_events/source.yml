@@ -1,8 +1,0 @@
-version: 2
-
-sources:
-  - name: raw
-    database: i-r1n1-0oih4hat-oh7wuuze5tds79
-    schema: dbt_ns
-    tables:
-      - name: events
