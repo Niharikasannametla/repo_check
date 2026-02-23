@@ -1,0 +1,30 @@
+models:
+  - name: stg_events
+    description: This model filters and selects recent user events from the raw events source, focusing on events that occurred within the last 180 days. It provides a streamlined view of user interactions, capturing essential details such as user identity, event type, timing, session context, device used, and geographical location. This model is useful for analyzing recent user behavior and trends.
+    columns:
+      - name: user_id
+        description: Unique identifier for the user who performed the event.
+        tests:
+          - unique
+          - not_null
+      - name: event_type
+        description: Type of event performed by the user.
+        tests:
+          - not_null
+      - name: event_timestamp
+        description: Timestamp indicating when the event occurred.
+        tests:
+          - not_null
+      - name: session_id
+        description: Identifier for the session during which the event took place.
+        tests:
+          - not_null
+      - name: device
+        description: Device used by the user to perform the event.
+        tests:
+          - not_null
+      - name: country
+        description: Country from which the event was performed, defaulting to 'unknown' if not specified.
+        tests:
+          - not_null
+

@@ -1,0 +1,14 @@
+models:
+- name: fact_events
+  description: This model aggregates event data to provide insights into user activity,
+    including the number of events per session, sessions per user per day, and average
+    events per session. It is useful for analyzing user engagement and session dynamics.
+  columns:
+  - name: event_date
+    description: The date on which the event occurred.
+  - name: user_id
+    description: The unique identifier for the user who performed the event.
+  - name: sessions_per_user
+    description: The number of sessions a user has per day.
+  - name: avg_events_per_session
+    description: The average number of events that occur in a session.
